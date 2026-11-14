@@ -24,10 +24,6 @@ All AI-generated content was reviewed and validated by the human team.
 
 **Live Game:** https://samunnatdev.github.io/junior-astronaut-mission-trainer/
 
-## Run Locally
-
-Open `index.html` in a modern browser. Live space-weather data requires an internet connection; if the feed is unavailable, the game retries automatically.
-
 ## Project Files
 
 - `index.html` — page structure and embedded hero image

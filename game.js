@@ -23,52 +23,81 @@ const SHOP = [
   { key: 'rover', name: 'Faster Rover',   icon: '🚙', costs: [100, 180, 260], desc: l => `${ROVER_HRS[l]}h and ${ROVER_O2[l]} oxygen per step` }
 ];
 
-// Pulls a real solar flare from NASA's DONKI space-weather API.
-// If the request fails (offline, rate limit), the game uses the fallback sentence.
-const NASA = { flareLine: () => "CCMC DONKI is tracking current solar-flare activity." };
-
-
+// Use CCMC's public DONKI endpoints for all three feeds. This avoids the
+// shared, low-quota NASA DEMO_KEY and keeps requests on the current API host.
 const DONKI_BASE = 'https://ccmc.gsfc.nasa.gov/DONKI-API';
-const NASA_API_BASE = 'https://api.nasa.gov/DONKI';
-const NASA_API_KEY = 'DEMO_KEY'; // Use NASA's public demo key; replace locally with your own key for higher rate limits.
 const SPACE_WEATHER = (() => {
-  const state = { status:'Connecting…', threat:'unknown', flare:null, cme:null, notification:null, updated:null, source:'NASA-keyed CME/notifications + CCMC DONKI FLR' };
+  const state = { status:'Connecting…', threat:'unknown', flare:null, cme:null, notification:null, updated:null, source:'CCMC DONKI public API', errors:[] };
   const day = n => new Date(Date.now() - n * 864e5).toISOString().slice(0,10);
-  const get = path => fetch(`${DONKI_BASE}${path}`).then(r => { if (!r.ok) throw new Error(`CCMC DONKI ${r.status}`); return r.json(); });
-  const getNASA = path => fetch(`${NASA_API_BASE}${path}${path.includes('?') ? '&' : '?'}api_key=${encodeURIComponent(NASA_API_KEY)}`).then(r => { if (!r.ok) throw new Error(`NASA DONKI ${r.status}`); return r.json(); });
-  const classRank = c => ({A:1,B:2,C:3,M:4,X:5}[String(c || '').charAt(0).toUpperCase()] || 0);
-  const formatType = item => item ? (item.classType || 'Unknown class') : 'No recent event';
-  const refresh = async () => {
+  const get = async path => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 12000);
     try {
-      const start = day(30), end = day(0);
-      const [flares, cmes, notes] = await Promise.all([
-        get(`/get/FLR?startDate=${start}&endDate=${end}`),
-        getNASA(`/CME?startDate=${start}&endDate=${end}`),
-        getNASA(`/notifications?startDate=${day(7)}&endDate=${end}&type=ALL`)
-      ]);
-      state.flare = (Array.isArray(flares) ? flares : []).sort((a,b) => new Date(b.beginTime || 0) - new Date(a.beginTime || 0))[0] || null;
-      state.cme = (Array.isArray(cmes) ? cmes : []).sort((a,b) => new Date(b.startTime || 0) - new Date(a.startTime || 0))[0] || null;
-      state.notification = (Array.isArray(notes) ? notes : []).sort((a,b) => new Date(b.messageIssueTime || 0) - new Date(a.messageIssueTime || 0))[0] || null;
-      const flareRank = classRank(state.flare && state.flare.classType);
-      const cmeSpeed = Number(state.cme && state.cme.speed) || 0;
-      state.threat = flareRank >= 5 || cmeSpeed >= 1000 ? 'high' : flareRank >= 4 || cmeSpeed >= 700 ? 'elevated' : 'quiet';
-      state.status = state.threat === 'high' ? 'High activity' : state.threat === 'elevated' ? 'Elevated activity' : 'Quiet conditions';
-      state.updated = new Date();
-      EVENT_CHANCE = Math.min(.72, BASE_EVENT_CHANCE + (state.threat === 'high' ? .22 : state.threat === 'elevated' ? .1 : 0));
-    } catch (e) {
-      state.status = 'Offline fallback'; state.threat = 'unknown'; state.updated = new Date(); EVENT_CHANCE = BASE_EVENT_CHANCE;
-    }
+      const r = await fetch(`${DONKI_BASE}${path}`, { headers:{Accept:'application/json'}, cache:'no-store', signal:controller.signal });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const data = await r.json();
+      if (!Array.isArray(data)) throw new Error('Unexpected response format');
+      return data;
+    } finally { clearTimeout(timer); }
+  };
+  const classRank = c => ({A:1,B:2,C:3,M:4,X:5}[String(c || '').charAt(0).toUpperCase()] || 0);
+  const latest = (items, field) => (Array.isArray(items) ? items : []).slice().sort((a,b) => String(b[field] || '').localeCompare(String(a[field] || '')))[0] || null;
+  const cmeSpeed = item => {
+    const analyses = item && Array.isArray(item.cmeAnalyses) ? item.cmeAnalyses : [];
+    const analysis = analyses.find(x => x.isMostAccurate) || analyses[0];
+    return Number(analysis && analysis.speed) || 0;
+  };
+  const refresh = async () => {
+    const end = day(0), start = day(30);
+    const results = await Promise.allSettled([
+      get(`/get/FLR?startDate=${start}&endDate=${end}`),
+      get(`/get/CME?startDate=${start}&endDate=${end}`),
+      get(`/get/notifications?startDate=${day(7)}&endDate=${end}&type=ALL`)
+    ]);
+    const names = ['solar flare','CME','notification'];
+    state.errors = [];
+    results.forEach((result, i) => {
+      if (result.status === 'rejected') {
+        state.errors.push(names[i]);
+        console.warn(`CCMC DONKI ${names[i]} feed failed:`, result.reason);
+      }
+    });
+    if (results[0].status === 'fulfilled') state.flare = latest(results[0].value, 'beginTime');
+    if (results[1].status === 'fulfilled') state.cme = latest(results[1].value, 'startTime');
+    if (results[2].status === 'fulfilled') state.notification = latest(results[2].value, 'messageIssueTime');
+    const goodFeeds = results.filter(x => x.status === 'fulfilled').length;
+    const flareRank = classRank(state.flare && state.flare.classType);
+    const speed = cmeSpeed(state.cme);
+    state.threat = flareRank >= 5 || speed >= 1000 ? 'high' : flareRank >= 4 || speed >= 700 ? 'elevated' : goodFeeds ? 'quiet' : 'unknown';
+    const activity = state.threat === 'high' ? 'High activity' : state.threat === 'elevated' ? 'Elevated activity' : 'Quiet conditions';
+    state.status = goodFeeds === 0 ? 'Feed unavailable' : goodFeeds < 3 ? `Partial live data · ${activity}` : activity;
+    state.updated = goodFeeds ? new Date() : state.updated;
+    EVENT_CHANCE = Math.min(.72, BASE_EVENT_CHANCE + (state.threat === 'high' ? .22 : state.threat === 'elevated' ? .1 : 0));
     render();
+    if (goodFeeds === 0) setTimeout(refresh, 60000);
     return state;
   };
   const render = () => {
     const flare = state.flare, cme = state.cme, note = state.notification;
-    const flareText = formatType(flare);
-    const cmeText = cme ? `${Math.round(Number(cme.speed) || 0)} km/s` : 'No recent CME';
-    const stamp = state.updated ? `Updated ${state.updated.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}` : 'Updating…';
-    const detail = state.status === 'Offline fallback' ? 'Live feed unavailable — using safe baseline simulation.' : note ? `${note.messageType} alert ${note.messageID} · ${note.messageIssueTime}` : 'No recent DONKI notification in the last 7 days.';
+    const flareText = flare ? (flare.classType || 'Unknown class') : 'No recorded flare';
+    const speed = cmeSpeed(cme);
+    const cmeText = cme ? (speed ? `${Math.round(speed)} km/s` : 'CME recorded') : 'No recent CME';
+    const stamp = state.updated ? `Fetched ${state.updated.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}` : 'Waiting for feed…';
+    const when = item => item ? (item.beginTime || item.startTime || item.messageIssueTime || '') : '';
+    let detail;
+    if (state.errors.length === 3) detail = 'Live feed unavailable. Check your internet connection; retrying automatically.';
+    else if (state.errors.length) detail = `Some live feeds did not respond (${state.errors.join(', ')}). Available feeds are still shown.`;
+    else if (note) detail = `Latest alert: ${note.messageType} · ${note.messageID} · ${note.messageIssueTime}`;
+    else detail = 'No recent DONKI notification in the last 7 days.';
     const panel = document.getElementById('weatherPanel');
-    if (panel) { panel.className = `live-panel threat-${state.threat}`; document.getElementById('weatherState').textContent = state.status; document.getElementById('weatherFlare').textContent = flareText; document.getElementById('weatherCme').textContent = cmeText; document.getElementById('weatherDetail').textContent = detail; document.getElementById('weatherUpdated').textContent = `${stamp} · ${state.source}`; }
+    if (panel) {
+      panel.className = `live-panel threat-${state.threat}`;
+      document.getElementById('weatherState').textContent = state.status;
+      document.getElementById('weatherFlare').textContent = flareText;
+      document.getElementById('weatherCme').textContent = cmeText;
+      document.getElementById('weatherDetail').textContent = detail;
+      document.getElementById('weatherUpdated').textContent = `${stamp} · CCMC DONKI${when(flare) || when(cme) ? ` · Latest event ${when(flare) || when(cme)}` : ''}`;
+    }
     const strip = document.getElementById('missionWeather');
     if (strip) { strip.className = `live-strip threat-${state.threat}`; strip.textContent = `☀️ ${state.status} · Flare ${flareText} · CME ${cmeText} · ${stamp}`; }
   };

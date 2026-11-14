@@ -12,6 +12,6 @@ Open `index.html` in a modern browser. The interface and game mechanics work loc
 - `styles.css` — visual styling and responsive layout
 - `game.js` — game logic, controls, audio, and space-weather integration
 
-## NASA API key
+## Live space-weather feed
 
-The public source uses NASA's `DEMO_KEY` rather than embedding a personal API key. Replace `NASA_API_KEY` in `game.js` with your own NASA key if you need higher API rate limits.
+The game reads solar-flare, CME, and notification data from CCMC's public DONKI API. It refreshes on startup and every 10 minutes. It does not require a NASA API key; if all requests fail, the game shows a clear offline status and retries after one minute.

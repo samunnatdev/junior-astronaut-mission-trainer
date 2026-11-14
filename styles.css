@@ -187,3 +187,13 @@ input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;bor
   #mission .mission-scene{height:165px}
 }
 @media(prefers-reduced-motion:reduce){html:focus-within{scroll-behavior:auto}button{transition:none!important}}
+
+
+/* Crew display: one astronaut in solo; a moving pair in co-op */
+.astronaut{white-space:nowrap;line-height:1}
+.astronaut .crew-member{display:inline-block}
+.astronaut .crew-member:nth-child(2){display:none}
+.astronaut.crew-coop{display:flex;align-items:center;gap:1px}
+.astronaut.crew-coop .crew-member:nth-child(2){display:inline-block;animation:crewBuddyBob 1.35s ease-in-out infinite;animation-delay:-.45s}
+@keyframes crewBuddyBob{0%,100%{transform:translateY(1px) rotate(2deg)}50%{transform:translateY(-7px) rotate(-2deg)}}
+@media(max-width:480px){.astronaut.crew-coop{font-size:2.8rem;gap:0}}

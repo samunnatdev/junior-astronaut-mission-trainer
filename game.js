@@ -260,6 +260,9 @@ const SPACE_WEATHER = (() => {
   function updateBase() {
     $('solo').classList.toggle('on', !coop());
     $('coop').classList.toggle('on', coop());
+    const astronaut = $('astronaut');
+    astronaut.classList.toggle('crew-coop', coop());
+    astronaut.setAttribute('aria-label', coop() ? 'Two astronauts exploring together' : 'One astronaut exploring');
     const o2 = +$('o2Slider').value;
     $('o2Label').textContent = `O₂ ${o2} oxygen · costs ⚡ ${Math.ceil(o2 / 2)} power`;
     $('need').textContent = `A trip to the crater and back needs about ${Math.ceil(2 * CRATER_STEPS * stepO2())} oxygen, plus extra for emergencies.`;
@@ -288,8 +291,9 @@ const SPACE_WEATHER = (() => {
     $('mDay').textContent = G.day;
     stats($('mStats'));
     let t = '';
+    const crewMarker = coop() ? '👩‍🚀👩‍🚀' : '👩‍🚀';
     for (let i = 0; i <= CRATER_STEPS; i++) {
-      t += `<div class="cell ${i === m.pos ? 'here' : ''}">${i === m.pos ? '🧑‍🚀' : i === 0 ? '🏠' : i === CRATER_STEPS ? '🕳️' : '·'}</div>`;
+      t += `<div class="cell ${i === m.pos ? 'here' : ''}">${i === m.pos ? crewMarker : i === 0 ? '🏠' : i === CRATER_STEPS ? '🕳️' : '·'}</div>`;
     }
     $('track').innerHTML = t;
     const progress = (m.pos / CRATER_STEPS) * 72;

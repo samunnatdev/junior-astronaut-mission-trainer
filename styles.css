@@ -123,3 +123,67 @@ input[type=range]{width:100%;accent-color:var(--gold)}
 #mission #evBtns .choice{margin:0;border-color:rgba(255,255,255,.08);background:rgba(18,24,54,.8)}
 #mission #stepBtn{margin:.8em 0;padding:1em;border-radius:17px;background:linear-gradient(135deg,#8be8ff,#49bfe8);color:#07182c;box-shadow:0 6px 0 #247fa7,0 14px 28px rgba(0,0,0,.22);font-size:1.05rem}
 @media(max-width:480px){#mission .mission-header{align-items:flex-start}#mission .mission-live{font-size:.58rem;padding:6px 8px}#mission .mission-scene{height:195px}#mission .stat{grid-template-columns:100px 1fr 42px;font-size:.76rem}#mission .track{gap:5px}#mission .cell{font-size:1.15rem}}
+
+/* Touch-first sizing, safe areas and compact phone layouts */
+html{min-height:100%;min-height:100dvh;overscroll-behavior-y:contain;-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{min-height:100vh;min-height:100dvh;padding-bottom:env(safe-area-inset-bottom,0px)}
+main{width:100%;padding:clamp(12px,4vw,20px);padding-left:max(clamp(12px,4vw,20px),env(safe-area-inset-left,0px));padding-right:max(clamp(12px,4vw,20px),env(safe-area-inset-right,0px))}
+button,input{touch-action:manipulation}
+button{-webkit-tap-highlight-color:transparent}
+button:focus-visible,input:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+input[type=range]{height:44px;margin:4px 0;touch-action:pan-x}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:50%;border:3px solid #fff;background:var(--gold);box-shadow:0 2px 8px rgba(0,0,0,.35)}
+input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;border:3px solid #fff;background:var(--gold);box-shadow:0 2px 8px rgba(0,0,0,.35)}
+.big,.choice,.item button,.audio-toggle{min-height:48px}
+.choice{padding:.75em .8em}
+.item button{min-width:72px;padding:.7em 1em}
+.track{gap:clamp(4px,1.5vw,8px);overflow:visible}
+.cell{min-width:0;min-height:58px;display:grid;place-items:center;padding:.45em .1em}
+.live-head,.live-grid{flex-wrap:wrap}
+#mission .track{gap:clamp(4px,1.5vw,8px)}
+#mission .cell{min-height:58px}
+.countdown-card{max-height:calc(100dvh - 32px);overflow:auto;padding:clamp(18px,5vw,24px)}
+@media(hover:none),(pointer:coarse){
+  button:hover:not(:disabled){transform:none;filter:none;box-shadow:none}
+  button:active:not(:disabled){filter:brightness(1.12);transform:scale(.985)}
+  .big:active:not(:disabled){transform:translateY(2px);box-shadow:0 4px 0 #bf8500}
+}
+@media(max-width:600px){
+  body{font-size:17px;line-height:1.42}
+  main{max-width:520px}
+  .hero{margin-left:calc(-1 * clamp(12px,4vw,20px));margin-right:calc(-1 * clamp(12px,4vw,20px));border-radius:0 0 22px 22px}
+  .hero img{height:clamp(170px,54vw,230px)}
+  h1{font-size:clamp(1.75rem,8vw,2.1rem)}
+  .badges{gap:6px}.badge{font-size:.66rem}
+  .row{gap:8px}
+  .stat{grid-template-columns:minmax(90px,112px) minmax(45px,1fr) 44px;gap:6px;font-size:.78rem}
+  .bar{height:16px}
+  .chips{gap:8px;flex-wrap:wrap;font-size:.76rem}
+  .live-head{align-items:flex-start}.live-grid{justify-content:flex-start}
+  #mission{padding-top:8px}
+  #mission .mission-header{gap:8px;margin-bottom:10px}
+  #mission h2{font-size:clamp(1.25rem,6vw,1.6rem)}
+  #mission .mission-kicker{font-size:.59rem;letter-spacing:.12em}
+  #mission .mission-live{font-size:.56rem;letter-spacing:.04em;padding:7px 8px}
+  #mission .mission-scene{height:clamp(170px,50vw,210px);margin-bottom:12px}
+  #mission .stats{padding:11px}
+  #mission .stat{grid-template-columns:minmax(88px,100px) minmax(40px,1fr) 40px;font-size:.73rem;gap:5px}
+  #mission .live-strip{line-height:1.5;overflow-wrap:anywhere}
+  #mission .track{margin:10px 0;padding:7px 1px}
+  #mission .cell{min-height:52px;font-size:clamp(1rem,5vw,1.25rem)}
+  #mission .msg{padding:10px;font-size:.84rem}
+  #mission #stepBtn{min-height:56px;margin:.65em 0 calc(.8em + env(safe-area-inset-bottom,0px));font-size:1rem}
+  #mission .event{padding:12px}
+  #mission #evBtns .choice{text-align:left;min-height:58px}
+  .countdown-card strong{font-size:clamp(4rem,20vw,5rem)}
+}
+@media(max-width:360px){
+  body{font-size:16px}
+  main{padding-left:12px;padding-right:12px}
+  .stat{grid-template-columns:82px minmax(35px,1fr) 38px;gap:5px;font-size:.72rem}
+  .row{flex-direction:column}
+  #mission .mission-live{max-width:112px;white-space:normal;text-align:center;line-height:1.25}
+  #mission .stat{grid-template-columns:78px minmax(30px,1fr) 36px;font-size:.68rem}
+  #mission .mission-scene{height:165px}
+}
+@media(prefers-reduced-motion:reduce){html:focus-within{scroll-behavior:auto}button{transition:none!important}}

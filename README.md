@@ -1,17 +1,35 @@
-# Junior Astronaut Mission Trainer
+# JAMT: Junior Astronaut Mission Trainer
 
-A self-contained browser game split into separate HTML, CSS, and JavaScript files. It has no build step or package dependencies.
+A browser-based survival game for kids (7–12) where they play as a Mission Commander managing Oxygen, Power, and Radiation on a lunar base. Survive 14 days by making tough trade-offs during emergencies.
 
-## Run locally
+## Tech Stack
 
-Open `index.html` in a modern browser. The interface and game mechanics work locally; live space-weather data requires an internet connection and falls back gracefully when unavailable.
+HTML, CSS, JavaScript
 
-## Files
+## NASA Data
+
+We integrated live data from NASA's DONKI API (CME data, notifications, and solar flare data) to drive the game's real-time emergencies.
+
+## AI Disclosure
+
+As per NASA rules, we disclose the use of AI tools:
+
+- **DeepSeek AI:** Research and text structuring (by Subi)
+- **Manus AI:** Coding assistance and deployment (by Samunnat)
+- **ChatGPT:** Video captioning and editing
+
+All AI-generated content was reviewed and validated by the human team.
+
+## Links
+
+**Live Game:** https://samunnatdev.github.io/junior-astronaut-mission-trainer/
+
+## Run Locally
+
+Open `index.html` in a modern browser. Live space-weather data requires an internet connection; if the feed is unavailable, the game retries automatically.
+
+## Project Files
 
 - `index.html` — page structure and embedded hero image
-- `styles.css` — visual styling and responsive layout
-- `game.js` — game logic, controls, audio, and space-weather integration
-
-## Live space-weather feed
-
-The game reads solar-flare, CME, and notification data from CCMC's public DONKI API. It refreshes on startup and every 10 minutes. It does not require a NASA API key; if all requests fail, the game shows a clear offline status and retries after one minute.
+- `styles.css` — responsive styling and touch controls
+- `game.js` — game logic, controls, audio, and live space-weather integration
